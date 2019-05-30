@@ -11,6 +11,8 @@
 @interface PhoneTraceRouteService()<PhoneTraceRouteDelegate>
 @property (nonatomic,strong) PhoneTraceRoute *ucTraceroute;
 @property (nonatomic,copy,readonly) NetTracerouteResultHandler tracertResultHandler;
+@property (strong, nonatomic) NSMutableArray<NSString *> *tracerouteInfos;
+@property (assign, nonatomic) BOOL isTracerouting;
 @end
 
 @implementation PhoneTraceRouteService
@@ -21,7 +23,7 @@ static PhoneTraceRouteService *ucTraceRouteService_instance = NULL;
 {
     self = [super init];
     if (self) {
-        
+        _tracerouteInfos = [[NSMutableArray alloc] init];
     }
     return self;
 }
@@ -46,43 +48,51 @@ static PhoneTraceRouteService *ucTraceRouteService_instance = NULL;
 
 - (void)startTracerouteHost:(NSString *)host resultHandler:(NetTracerouteResultHandler)handler
 {
+    if (self.isTracerouting) {
+        return;
+    }
+    
     if (_ucTraceroute) {
         _ucTraceroute = nil;
     }
+    _isTracerouting = YES;
     _tracertResultHandler = handler;
     _ucTraceroute = [[PhoneTraceRoute alloc] init];
     _ucTraceroute.delegate = self;
+    [_tracerouteInfos addObject:[NSString stringWithFormat:@"Start Traceroute, HOST is : %@", host]];
     [_ucTraceroute startTracerouteHost:host];
 }
 
 #pragma mark -PhoneTraceRouteDelegate
-- (void)tracerouteWithUCTraceRoute:(PhoneTraceRoute *)ucTraceRoute tracertResult:(PTracerRouteResModel *)tracertRes
-{
+- (void)tracerouteWithUCTraceRoute:(PhoneTraceRoute *)ucTraceRoute tracertResult:(PTracerRouteResModel *)tracertRes {
     NSMutableString *tracertTimeoutRes = [NSMutableString string];
     NSMutableString *mutableDurations = [NSMutableString string];
     for (int i = 0; i < tracertRes.count; i++) {
         if (tracertRes.durations[i] <= 0) {
             [tracertTimeoutRes appendString:@" *"];
-        }else{
+        } else {
             [mutableDurations appendString:[NSString stringWithFormat:@" %.3fms",tracertRes.durations[i] * 1000]];
         }
     }
-    NSMutableString *tracertDetail = [NSMutableString string];
+    
+    NSString *info;
+    
     if (tracertTimeoutRes.length > 0) {
-        [tracertDetail appendString:[NSString stringWithFormat:@"%d %@",(int)tracertRes.hop,tracertTimeoutRes]];
-        _tracertResultHandler(tracertDetail,tracertRes.dstIp);
-        return;
+        info = [NSString stringWithFormat:@"timeout, Hop: %d %@",(int)tracertRes.hop,tracertTimeoutRes];
+        [_tracerouteInfos addObject:info];
+    } else {
+        info = [NSString stringWithFormat:@"Hop: %d, IP: %@, Durations:%@",(int)tracertRes.hop,tracertRes.ip,mutableDurations];
+        [_tracerouteInfos addObject:info];
     }
-    
-    NSString *tracertNormalDetail = [NSString stringWithFormat:@"%d  %@(%@) %@",(int)tracertRes.hop,tracertRes.ip,tracertRes.ip,mutableDurations];
-    [tracertDetail appendString:tracertNormalDetail];
-    _tracertResultHandler(tracertDetail,tracertRes.dstIp);
-    
 }
 
 - (void)tracerouteFinishedWithUCTraceRoute:(PhoneTraceRoute *)ucTraceRoute
 {
-    
+    if (_tracertResultHandler && self.tracerouteInfos.count > 0) {
+        _tracertResultHandler([self.tracerouteInfos copy]);
+        [_tracerouteInfos removeAllObjects];
+    }
+    _isTracerouting = NO;
 }
 
 @end
