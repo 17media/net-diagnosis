@@ -91,8 +91,8 @@ static PhoneTraceRouteService *ucTraceRouteService_instance = NULL;
     if (_tracertResultHandler && self.tracerouteInfos.count > 0) {
         _tracertResultHandler([self.tracerouteInfos copy]);
         [_tracerouteInfos removeAllObjects];
+        _isTracerouting = NO;
     }
-    _isTracerouting = NO;
 }
 
 @end
