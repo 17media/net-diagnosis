@@ -48,10 +48,6 @@ static PhonePingService *ucPingservice_instance = NULL;
 
 
 - (void)startPingHost:(NSString *)host packetCount:(int)count resultHandler:(NetPingResultHandler)handler {
-    if (self.uIsPing) {
-        return;
-    }
-    
     if (_uPing) {
         _uPing = nil;
         _uPing = [[PhonePing alloc] init];
@@ -76,34 +72,57 @@ static PhonePingService *ucPingservice_instance = NULL;
     }
 }
 
+- (BOOL)isNormalStatus:(PhoneNetPingStatus)status {
+    switch (status) {
+        case PhoneNetPingStatusError:
+        case PhoneNetPingStatusDidTimeout:
+        case PhoneNetPingStatusDidFailToSendPacket:
+        case PhoneNetPingStatusDidReceiveUnexpectedPacket:
+            return NO;
+        default:
+            return YES;
+    }
+}
+
 #pragma mark-UCPingDelegate
 - (void)pingResultWithUCPing:(PhonePing *)ucPing pingResult:(PPingResModel *)pingRes pingStatus:(PhoneNetPingStatus)status {
-    if (self.pingResultHandler) {
-        if (status == PhoneNetPingStatusFinished && self.pings.count > 0) {
-            CGFloat time = 0.0f;
-            NSInteger ttl = 0;
-            NSMutableArray<NSString *> *allStatus = [[NSMutableArray alloc] init];
+    if (!self.pingResultHandler) {
+        return;
+    }
+    
+    if (status == PhoneNetPingStatusFinished && self.pings.count > 0) {
+        CGFloat time = 0.0f;
+        NSInteger ttl = 0;
+        NSMutableArray<NSString *> *allStatus = [[NSMutableArray alloc] init];
+        NSInteger validCount = 0; // timeout, error 狀態時不列入最後的平均計算
+        
+        for (PPingResModel *p in self.pings) {
+            NSString *pingStatus = [self statusString:p.status];
+            [allStatus addObject:pingStatus];
             
-            for (PPingResModel *p in self.pings) {
+            /* 這邊有個奇怪的現象, timeMilliseconds有可能是0.4左右, 但是卻是正常的status,
+               所以需要把這種奇怪情況不列入不計算 */
+            if ([self isNormalStatus:p.status] && p.timeMilliseconds > 1.0f) {
+                validCount += 1;
                 time += p.timeMilliseconds;
                 ttl += p.timeToLive;
-                NSString *pingStatus = [self statusString:p.status];
-                [allStatus addObject:pingStatus];
             }
-            
-            time = time/(CGFloat)self.pings.count;
-            ttl = ttl/self.pings.count;
-            
-            [self.pings removeAllObjects];
-            
-            NSString *statusResult = [allStatus componentsJoinedByString:@"/"];
-            self.pingResultHandler(time, ttl, statusResult, YES);
-            
-        } else {
-            if (pingRes) {
-                [self.pings addObject:pingRes];
-                self.pingResultHandler(pingRes.timeMilliseconds, pingRes.timeToLive, [self statusString:pingRes.status], NO);
-            }
+        }
+        
+        if (validCount > 0) {
+            time = time/(CGFloat)validCount;
+            ttl = ttl/validCount;
+        }
+        
+        [self.pings removeAllObjects];
+        
+        NSString *statusResult = [allStatus componentsJoinedByString:@"/"];
+        self.pingResultHandler(time, ttl, statusResult, YES);
+        
+    } else {
+        if (pingRes) {
+            [self.pings addObject:pingRes];
+            self.pingResultHandler(pingRes.timeMilliseconds, pingRes.timeToLive, [self statusString:pingRes.status], NO);
         }
     }
 }
