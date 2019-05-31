@@ -31,11 +31,12 @@ typedef NS_ENUM(NSUInteger,PhoneNetSDKLogLevel)
     PhoneNetSDKLogLevel_DEBUG
 };
 
+
 #pragma mark -ping callback
-typedef void(^NetPingResultHandler)(NSString *_Nullable pingres);
+typedef void(^NetPingResultHandler)(CGFloat time, NSInteger ttl, NSString * _Nullable pingStatus, BOOL isFinish);
 
 #pragma mark -tracert callback
-typedef void(^NetTracerouteResultHandler)(NSString *_Nullable tracertRes ,NSString *_Nullable destIp);
+typedef void(^NetTracerouteResultHandler)(NSArray<NSString *> *traceroutes);
 
 #pragma mark -nslookup callback
 typedef void (^NetLookupResultHandler)(NSMutableArray<DomainLookUpRes *>  *_Nullable lookupRes, PNError *_Nullable sdkError);
