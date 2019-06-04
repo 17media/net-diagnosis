@@ -75,15 +75,14 @@ static PhoneTraceRouteService *ucTraceRouteService_instance = NULL;
         }
     }
     
-    NSString *info;
-    
     if (tracertTimeoutRes.length > 0) {
-        info = [NSString stringWithFormat:@"timeout, Hop: %d %@",(int)tracertRes.hop,tracertTimeoutRes];
-        [_tracerouteInfos addObject:info];
-    } else {
-        info = [NSString stringWithFormat:@"Hop: %d, IP: %@, Durations:%@",(int)tracertRes.hop,tracertRes.ip,mutableDurations];
-        [_tracerouteInfos addObject:info];
+        NSString *tracertDetail = [NSString stringWithFormat:@"%d %@",(int)tracertRes.hop,tracertTimeoutRes];
+        [_tracerouteInfos addObject:tracertDetail];
+        return;
     }
+    
+    NSString *tracertNormalDetail = [NSString stringWithFormat:@"%d  %@ %@",(int)tracertRes.hop,tracertRes.ip,mutableDurations];
+    [_tracerouteInfos addObject:tracertNormalDetail];
 }
 
 - (void)tracerouteFinishedWithUCTraceRoute:(PhoneTraceRoute *)ucTraceRoute
