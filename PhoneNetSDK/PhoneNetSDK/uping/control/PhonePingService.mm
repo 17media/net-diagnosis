@@ -91,38 +91,48 @@ static PhonePingService *ucPingservice_instance = NULL;
     }
     
     if (status == PhoneNetPingStatusFinished && self.pings.count > 0) {
-        CGFloat time = 0.0f;
-        NSInteger ttl = 0;
-        NSMutableArray<NSString *> *allStatus = [[NSMutableArray alloc] init];
+        CGFloat maximumTime = 0.0f;
+        CGFloat minimumTime = CGFLOAT_MAX;
+        CGFloat averageTime = 0.0f;
+        
+        NSMutableArray<NSString *> *details = [[NSMutableArray alloc] init];
         NSInteger validCount = 0; // timeout, error 狀態時不列入最後的平均計算
         
         for (PPingResModel *p in self.pings) {
             NSString *pingStatus = [self statusString:p.status];
-            [allStatus addObject:pingStatus];
-            
             /* 這邊有個奇怪的現象, timeMilliseconds有可能是0.4左右, 但是卻是正常的status,
                所以需要把這種奇怪情況不列入不計算 */
             if ([self isNormalStatus:p.status] && p.timeMilliseconds > 1.0f) {
                 validCount += 1;
-                time += p.timeMilliseconds;
-                ttl += p.timeToLive;
+                averageTime += p.timeMilliseconds;
+                
+                if (p.timeMilliseconds > maximumTime) {
+                    maximumTime = p.timeMilliseconds;
+                }
+                
+                if (p.timeMilliseconds < minimumTime) {
+                    minimumTime = p.timeMilliseconds;
+                }
+                
+                NSString *pingDetail = [NSString stringWithFormat:@"%d bytes form %@: icmp_seq=%d ttl=%d time=%.3fms (%@)",(int)p.dateBytesLength,p.IPAddress,(int)p.ICMPSequence,(int)p.timeToLive,p.timeMilliseconds, pingStatus];
+                
+                [details addObject:pingDetail];
             }
         }
-        
+        NSString *result = [NSString stringWithFormat:@"round-trip min/avg/max = %.3f/%.3f/%.3f", minimumTime, averageTime, maximumTime];
+        [details addObject:result];
+    
         if (validCount > 0) {
-            time = time/(CGFloat)validCount;
-            ttl = ttl/validCount;
+            averageTime = averageTime/(CGFloat)validCount;
         }
         
         [self.pings removeAllObjects];
         
-        NSString *statusResult = [allStatus componentsJoinedByString:@"/"];
-        self.pingResultHandler(time, ttl, statusResult, YES);
+        self.pingResultHandler(minimumTime, averageTime, maximumTime, [details copy]);
         
     } else {
         if (pingRes) {
             [self.pings addObject:pingRes];
-            self.pingResultHandler(pingRes.timeMilliseconds, pingRes.timeToLive, [self statusString:pingRes.status], NO);
         }
     }
 }
