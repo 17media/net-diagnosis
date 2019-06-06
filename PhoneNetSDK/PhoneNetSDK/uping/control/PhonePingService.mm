@@ -119,13 +119,14 @@ static PhonePingService *ucPingservice_instance = NULL;
                 [details addObject:pingDetail];
             }
         }
-        NSString *result = [NSString stringWithFormat:@"round-trip min/avg/max = %.3f/%.3f/%.3f", minimumTime, averageTime, maximumTime];
-        [details addObject:result];
     
         if (validCount > 0) {
             averageTime = averageTime/(CGFloat)validCount;
         }
         
+        NSString *result = [NSString stringWithFormat:@"round-trip min/avg/max = %.3f/%.3f/%.3f", minimumTime, averageTime, maximumTime];
+        [details addObject:result];
+
         [self.pings removeAllObjects];
         
         self.pingResultHandler(minimumTime, averageTime, maximumTime, [details copy]);
