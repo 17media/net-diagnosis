@@ -29,10 +29,10 @@
 
 - (instancetype)init
 {
-    if ([super init]) {
-        
-        _isStopPingThread = NO;
+    if (self = [super init]) {
+        _isStopPingThread = YES;
     }
+    
     return self;
 }
 
