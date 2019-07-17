@@ -48,12 +48,15 @@ static PhonePingService *ucPingservice_instance = NULL;
 
 
 - (void)startPingHost:(NSString *)host packetCount:(int)count resultHandler:(NetPingResultHandler)handler {
+    
     if (!_uPing) {
         _uPing = [[PhonePing alloc] init];
     } else if (self.uIsPing) {
         return;
     }
-
+    
+    [self.uPing resetPingStatus];
+    
     _pingResultHandler = handler;
     _uPing.delegate = self;
     
