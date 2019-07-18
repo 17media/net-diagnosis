@@ -30,7 +30,6 @@
 - (instancetype)init
 {
     if (self = [super init]) {
-        _isStopPingThread = YES;
     }
     
     return self;
@@ -45,6 +44,10 @@
 - (BOOL)isPing
 {
     return !self.isStopPingThread;
+}
+
+- (void)resetPingStatus {
+    self.isStopPingThread = NO;
 }
 
 - (BOOL)settingUHostSocketAddressWithHost:(NSString *)host
@@ -135,22 +138,22 @@
             index++;
         }
         usleep(1000*500);
+        
     } while (!self.isStopPingThread && index < _pingPacketCount && isReceiverRemoteIpPingRes);
     
-    if (index == _pingPacketCount) {
-        log4cplus_debug("PhoneNetPing", "ping complete..\n");
-        /*
-         int shutdown(int s, int how); // s is socket descriptor
-         int how can be:
-         SHUT_RD or 0 Further receives are disallowed
-         SHUT_WR or 1 Further sends are disallowed
-         SHUT_RDWR or 2 Further sends and receives are disallowed
-         */
-        shutdown(socket_client, SHUT_RDWR); //
-        self.isStopPingThread = YES;
-        
-        [self reporterPingResWithSorceIp:self.host ttl:0 timeMillSecond:0 seq:0 icmpId:0 dataSize:0 pingStatus:PhoneNetPingStatusFinished];
-    }
+
+    log4cplus_debug("PhoneNetPing", "ping complete..\n");
+    /*
+     int shutdown(int s, int how); // s is socket descriptor
+     int how can be:
+     SHUT_RD or 0 Further receives are disallowed
+     SHUT_WR or 1 Further sends are disallowed
+     SHUT_RDWR or 2 Further sends and receives are disallowed
+     */
+    shutdown(socket_client, SHUT_RDWR); //
+    self.isStopPingThread = YES;
+    
+    [self reporterPingResWithSorceIp:self.host ttl:0 timeMillSecond:0 seq:0 icmpId:0 dataSize:0 pingStatus:PhoneNetPingStatusFinished];
     
 }
 

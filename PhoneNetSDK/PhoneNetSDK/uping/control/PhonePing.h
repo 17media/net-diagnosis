@@ -25,7 +25,7 @@
 @property (nonatomic,strong) id<PhonePingDelegate> delegate;
 
 - (void)startPingHosts:(NSString *)host packetCount:(int)count;
-
+- (void)resetPingStatus;
 - (void)stopPing;
 - (BOOL)isPing;
 @end
